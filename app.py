@@ -15,33 +15,48 @@ mysql = MySQL(app)
 respuesta_obtenida = []
 datos_usuario_temporal = []
 
-
 @app.route('/')
 def bienvenida():
     return jsonify({"bienvenida": "hola"})
 
-@app.route("/agregar_usuario_temporal", methods=['POST'])
-def agregar_usuario_temporal():
-    datos_usuario = {
-        'id_usuario': request.json['Id_usuario'],
-        'nombre': request.json['Nombre'],
-        'apellido': request.json['Apellido'],
-        'respuesta_abdominal': request.json['Respuesta_abdominal'],
-        'respuesta_diarrea': request.json['Respuesta_diarrea'],
-        'respuesta_estrenimiento': request.json['Respuesta_estrenimiento'],
-        'respuesta_acidez': request.json['Respuesta_acidez'],
-        'respuesta_vomitos': request.json['Respuesta_vomitos'],
+@app.route("/modificar_vehiculo", methods=['POST'])
+def modificar_vehiculo():
+
+    datos_vehiculo = {
+        'modificar_id': request.json['modificarId'],
+        'modificar_año': request.json['modificarAño'],
+        'modificar_modelo': request.json['modificarModelo'],
+        'modificar_kilometraje': request.json['modificarKilometraje'],
+        'modificar_precio': request.json['modificarPrecio']
     }
-    
-    datos_usuario_temporal.append(datos_usuario)
-    Id_usuario = datos_usuario['id_usuario']
-    Nombre = datos_usuario['nombre']
-    Apellido = datos_usuario['apellido']
-    Respuesta_abdominal = datos_usuario['respuesta_abdominal']
-    Respuesta_diarrea = datos_usuario['respuesta_diarrea']
-    Respuesta_estrenimiento = datos_usuario['respuesta_estrenimiento']
-    Respuesta_acidez = datos_usuario['respuesta_acidez']
-    Respuesta_vomitos = datos_usuario['respuesta_vomitos']
+
+    id = datos_vehiculo['modificar_id']
+    año = datos_vehiculo['modificar_año']
+    modelo = datos_vehiculo['modificar_modelo']
+    kilometraje = datos_vehiculo['modificar_kilometraje']
+    precio = datos_vehiculo['modificar_precio']
+
+    cur = mysql.connection.cursor()
+    sql = ("UPDATE tabla_renault SET precio = %s, modelo = %s, año = %s, kilometraje = %s WHERE id = %s")
+    val = (precio, modelo, año, kilometraje, id)
+    cur.execute(sql,val)
+    cur.close()
+    mysql.connection.commit()
+    print("Modificación realizada ")
+    return jsonify({"informacion":"Registro exitoso del usuario y sus respuestas"})
+
+@app.route("/eliminar_vehiculo/<id>", methods=['DELETE'])
+def eliminar_vehiculo(id):
+
+    cur = mysql.connection.cursor()
+
+    sql = ("DELETE FROM tabla_renault WHERE id = %s")
+    val = (id,)
+    cur.execute(sql,val)
+    cur.close()
+    mysql.connection.commit()
+    print("eliminación realizada ")
+    return jsonify({"informacion":"Registro exitoso del usuario y sus respuestas"})
 
 #Funcion insertar datos
 @app.route("/insertar_datos/", methods = ['POST'])
@@ -59,8 +74,8 @@ def insertar_datos():
     año = datos_usuario['año']
     kilometraje = datos_usuario['kilometraje']
     precio = datos_usuario['precio']
-    cur = mysql.connection.cursor()
 
+    cur = mysql.connection.cursor()
     cur.execute("INSERT INTO tabla_renault (modelo, año, kilometraje, precio) VALUES (%s,%s,%s,%s)", (modelo, año, kilometraje, precio))
     cur.close()
     mysql.connection.commit()
@@ -78,26 +93,34 @@ def mostrar_tabla():
         resultado.append(dict(zip(columnas, registro)))
     return jsonify(resultado)
 
-@app.route("/respuesta_sbr/<id>", methods = ['GET'])
-def respuesta_sbr(id):
+@app.route('/get_user_info', methods = ['GET'])
+def recibir_usuario_info():
     try:
-
         cur = mysql.connection.cursor()
-        cur.execute('SELECT * FROM Usuario_Respuestas WHERE Id_Usuario LIKE %s',[id])
+        cur.execute('SELECT modelo, COUNT(*) as COUNT FROM tabla_renault GROUP BY modelo ORDER BY modelo ASC')
         rv = cur.fetchall()
         cur.close()
         payload = []
-        content = {}
         for result in rv:
-            content = {"id_usuario":result[0],"Nombre":result[1],"Apellido":result[2],"Respuesta_abdominal":result[3],"Respuesta_diarrea":result[4],"Respuesta_estrenimiento":result[5],"Respuesta_acidez":result[6],"Respuesta_vomitos":result[7],"Diagnostico_final":result[8]}
-            payload.append(content)
-            content = {}
+            usuarios_contenido ={"modelo" : result[0], "cantidad" :result[1]}
+            payload.append(usuarios_contenido)
         return jsonify(payload)
     except Exception as e:
         print(e)
+        return jsonify({"error":e})
+    
+@app.route('/mostrar_vehiculo/<id>', methods=['GET'])
+def getAllById(id):
+    try:
+        print("la id es",id)
+        cur = mysql.connection.cursor()
+        cur.execute('SELECT * FROM tabla_renault WHERE id = %s', [id])
+        rv = cur.fetchall()
+        cur.close()
+        return jsonify(rv)
+    except Exception as e:
+        print(e)
         return jsonify({"informacion":e})
-
-
 
 if __name__ == '__main__':
     app.run(debug = True, port = 4000)
