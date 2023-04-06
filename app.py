@@ -5,22 +5,44 @@ from flask_cors import CORS, cross_origin
 app = Flask(__name__)
 
 CORS(app)
-# Mysql Connection
+
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
 app.config['MYSQL_PASSWORD'] = ''
 app.config['MYSQL_DB'] = 'renault' #nombre de la BD
 mysql = MySQL(app)
 
-respuesta_obtenida = []
-datos_usuario_temporal = []
-
 @app.route('/')
 def bienvenida():
     return jsonify({"bienvenida": "hola"})
 
-@app.route("/modificar_vehiculo", methods=['POST'])
-def modificar_vehiculo():
+@app.route("/insertar_datos_vehiculo/", methods = ['POST'])
+def insertar_datos_vehiculo():
+
+    datos_usuario_temporal = []
+    datos_usuario = {
+        'modelo': request.json['campo_modelo'],
+        'año': request.json['campo_año'],
+        'kilometraje': request.json['campo_kilometraje'],
+        'precio': request.json['campo_precio']
+    }
+
+    datos_usuario_temporal.append(datos_usuario)
+
+    modelo = datos_usuario['modelo']
+    año = datos_usuario['año']
+    kilometraje = datos_usuario['kilometraje']
+    precio = datos_usuario['precio']
+
+    cur = mysql.connection.cursor()
+    cur.execute("INSERT INTO tabla_renault (modelo, año, kilometraje, precio) VALUES (%s,%s,%s,%s)", (modelo, año, kilometraje, precio))
+    cur.close()
+    mysql.connection.commit()
+    print("Datos añadidos a la BD ")
+    return jsonify({"informacion":"Registro exitoso del usuario y sus respuestas"})
+
+@app.route("/modificar_datos_vehiculo", methods=['POST'])
+def modificar_datos_vehiculo():
 
     datos_vehiculo = {
         'modificar_id': request.json['modificarId'],
@@ -45,8 +67,8 @@ def modificar_vehiculo():
     print("Modificación realizada ")
     return jsonify({"informacion":"Registro exitoso del usuario y sus respuestas"})
 
-@app.route("/eliminar_vehiculo/<id>", methods=['DELETE'])
-def eliminar_vehiculo(id):
+@app.route("/eliminar_datos_vehiculo/<id>", methods=['DELETE'])
+def eliminar_datos_vehiculo(id):
 
     cur = mysql.connection.cursor()
 
@@ -58,32 +80,10 @@ def eliminar_vehiculo(id):
     print("eliminación realizada ")
     return jsonify({"informacion":"Registro exitoso del usuario y sus respuestas"})
 
-#Funcion insertar datos
-@app.route("/insertar_datos/", methods = ['POST'])
-def insertar_datos():
-    datos_usuario = {
-        'modelo': request.json['campo_modelo'],
-        'año': request.json['campo_año'],
-        'kilometraje': request.json['campo_kilometraje'],
-        'precio': request.json['campo_precio']
-    }
-
-    datos_usuario_temporal.append(datos_usuario)
-
-    modelo = datos_usuario['modelo']
-    año = datos_usuario['año']
-    kilometraje = datos_usuario['kilometraje']
-    precio = datos_usuario['precio']
-
-    cur = mysql.connection.cursor()
-    cur.execute("INSERT INTO tabla_renault (modelo, año, kilometraje, precio) VALUES (%s,%s,%s,%s)", (modelo, año, kilometraje, precio))
-    cur.close()
-    mysql.connection.commit()
-    print("Datos añadidos a la BD ")
-    return jsonify({"informacion":"Registro exitoso del usuario y sus respuestas"})
-
-@app.route('/mostrar_datos_tabla/', methods=['GET'])
-def mostrar_tabla():
+#RUTA PARA MOSTRAR DATOS EN LA TABLA
+#Mostrar los registros de la BD en la tabla
+@app.route('/mostrar_registros_tabla/', methods=['GET'])
+def mostrar_registros_tabla():
     cursor = mysql.connection.cursor()
     cursor.execute('SELECT * FROM tabla_renault')
     registros = cursor.fetchall()
@@ -93,6 +93,9 @@ def mostrar_tabla():
         resultado.append(dict(zip(columnas, registro)))
     return jsonify(resultado)
 
+
+# RUTAS PARA LAS GRÁFICAS
+#@app.route('/get_user_info', methods = ['GET'])
 @app.route('/get_user_info', methods = ['GET'])
 def recibir_usuario_info():
     try:
@@ -109,6 +112,41 @@ def recibir_usuario_info():
         print(e)
         return jsonify({"error":e})
     
+#Muestra la cantidad de carros que hay según el año
+#@app.route('/cant_carros_por_ano', methods = ['GET'])
+@app.route('/carros_por_anio', methods = ['GET'])
+def mostrar_cantidad():
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute('SELECT año, COUNT(*) as COUNT FROM tabla_renault GROUP BY año ORDER BY año ASC')
+        rv = cur.fetchall()
+        cur.close()
+        payload = []
+        for result in rv:
+            usuarios_contenido ={"año" : result[0], "cantidad" :result[1]}
+            payload.append(usuarios_contenido)
+        return jsonify(payload)
+    except Exception as e:
+        print(e)
+        return jsonify({"error":e})
+
+@app.route('/precio_segun_km', methods = ['GET'])
+def precio_segun_km():
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute('SELECT precio, kilometraje, año FROM tabla_renault')
+        rv = cur.fetchall()
+        cur.close()
+        payload = []
+        for result in rv:
+            usuarios_contenido ={"precio" : result[0], "kilometraje" :result[1], "año" :result[2]}
+            payload.append(usuarios_contenido)
+        print(payload)
+        return jsonify(payload)
+    except Exception as e:
+        print(e)
+        return jsonify({"error":e})
+
 @app.route('/mostrar_vehiculo/<id>', methods=['GET'])
 def getAllById(id):
     try:
