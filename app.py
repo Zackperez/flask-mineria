@@ -46,21 +46,17 @@ def modificar_datos_vehiculo():
 
     datos_vehiculo = {
         'modificar_id': request.json['modificarId'],
-        'modificar_año': request.json['modificarAño'],
-        'modificar_modelo': request.json['modificarModelo'],
         'modificar_kilometraje': request.json['modificarKilometraje'],
         'modificar_precio': request.json['modificarPrecio']
     }
 
     id = datos_vehiculo['modificar_id']
-    año = datos_vehiculo['modificar_año']
-    modelo = datos_vehiculo['modificar_modelo']
     kilometraje = datos_vehiculo['modificar_kilometraje']
     precio = datos_vehiculo['modificar_precio']
 
     cur = mysql.connection.cursor()
-    sql = ("UPDATE tabla_renault SET precio = %s, modelo = %s, año = %s, kilometraje = %s WHERE id = %s")
-    val = (precio, modelo, año, kilometraje, id)
+    sql = ("UPDATE tabla_renault SET precio = %s, kilometraje = %s WHERE id = %s")
+    val = (precio, kilometraje, id)
     cur.execute(sql,val)
     cur.close()
     mysql.connection.commit()
@@ -159,6 +155,25 @@ def getAllById(id):
     except Exception as e:
         print(e)
         return jsonify({"informacion":e})
+
+
+@app.route('/iniciar_sesion', methods = ['POST'])
+def iniciar_sesion():
+
+    datos_usuario = {
+        'usuario': request.json['correo'],
+        'contrasena': request.json['contrasena']
+    }
+
+    usuario = datos_usuario['usuario']
+    contrasena = datos_usuario['contrasena']
+
+    print(datos_usuario)
+
+    cursor = mysql.connection.cursor()
+    cursor.execute('SELECT usuario, contrasena FROM usuario WHERE usuario LIKE %s and contrasena = %s', (usuario, contrasena))
+    registro = cursor.fetchall()
+    return jsonify(len(registro))
 
 if __name__ == '__main__':
     app.run(debug = True, port = 4000)
