@@ -65,7 +65,7 @@ def modificar_datos_vehiculo():
 
 @app.route("/eliminar_datos_vehiculo/<id>", methods=['DELETE'])
 def eliminar_datos_vehiculo(id):
-
+    print(id)
     cur = mysql.connection.cursor()
 
     sql = ("DELETE FROM tabla_renault WHERE id = %s")
@@ -142,6 +142,23 @@ def precio_segun_km():
     except Exception as e:
         print(e)
         return jsonify({"error":e})
+    
+@app.route('/modelos_segun_anio', methods = ['GET'])
+def modelos_segun_anio():
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute('SELECT modelo, año, COUNT(*) as cantidad FROM tabla_renault GROUP BY modelo, año;')
+        rv = cur.fetchall()
+        cur.close()
+        payload = []
+        for result in rv:
+            usuarios_contenido ={"modelo" : result[0], "año" :result[1], "cantidad" :result[2]}
+            payload.append(usuarios_contenido)
+        print(payload)
+        return jsonify(payload)
+    except Exception as e:
+        print(e)
+        return jsonify({"error":e})
 
 @app.route('/mostrar_vehiculo/<id>', methods=['GET'])
 def getAllById(id):
@@ -155,7 +172,6 @@ def getAllById(id):
     except Exception as e:
         print(e)
         return jsonify({"informacion":e})
-
 
 @app.route('/iniciar_sesion', methods = ['POST'])
 def iniciar_sesion():
