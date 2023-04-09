@@ -76,6 +76,18 @@ def eliminar_datos_vehiculo(id):
     print("eliminación realizada ")
     return jsonify({"informacion":"Registro exitoso del usuario y sus respuestas"})
 
+@app.route('/consultar_datos_vehiculo/<id>', methods=['GET'])
+def consultar_datos_vehiculo(id):
+    try:
+        print("la id es",id)
+        cur = mysql.connection.cursor()
+        cur.execute('SELECT * FROM tabla_renault WHERE id = %s', [id])
+        rv = cur.fetchall()
+        cur.close()
+        return jsonify(rv)
+    except Exception as e:
+        print(e)
+        return jsonify({"informacion":e})
 #RUTA PARA MOSTRAR DATOS EN LA TABLA
 #Mostrar los registros de la BD en la tabla
 @app.route('/mostrar_registros_tabla/', methods=['GET'])
@@ -159,19 +171,6 @@ def modelos_segun_anio():
     except Exception as e:
         print(e)
         return jsonify({"error":e})
-
-@app.route('/mostrar_vehiculo/<id>', methods=['GET'])
-def getAllById(id):
-    try:
-        print("la id es",id)
-        cur = mysql.connection.cursor()
-        cur.execute('SELECT * FROM tabla_renault WHERE id = %s', [id])
-        rv = cur.fetchall()
-        cur.close()
-        return jsonify(rv)
-    except Exception as e:
-        print(e)
-        return jsonify({"informacion":e})
 
 @app.route('/iniciar_sesion', methods = ['POST'])
 def iniciar_sesion():
